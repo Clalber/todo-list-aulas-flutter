@@ -11,8 +11,10 @@ class TaskDialog extends StatefulWidget {
 }
 
 class _TaskDialogState extends State<TaskDialog> {
+  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _priorityController = TextEditingController();
 
   Task _currentTask = Task();
 
@@ -26,6 +28,9 @@ class _TaskDialogState extends State<TaskDialog> {
 
     _titleController.text = _currentTask.title;
     _descriptionController.text = _currentTask.description;
+    _priorityController.text = _currentTask.priority.toString().isEmpty
+        ? _currentTask.priority.toString()
+        : "";
   }
 
   @override
@@ -33,24 +38,38 @@ class _TaskDialogState extends State<TaskDialog> {
     super.dispose();
     _titleController.clear();
     _descriptionController.clear();
+    _priorityController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.task == null ? 'Nova tarefa' : 'Editar tarefas'),
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          TextField(
-              controller: _titleController,
-              decoration: InputDecoration(labelText: 'Título'),
-              autofocus: true),
-          TextField(
-              controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Descrição')),
-        ],
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              buildTextFormField(
+                controller: _titleController,
+                error: "Escreva o título",
+                label: 'Título',
+              ),
+              buildTextFormField(
+                controller: _descriptionController,
+                error: "Escreva a descrição",
+                label: 'Descrição',
+              ),
+              buildTextFormFieldNumber(
+                controller: _priorityController,
+                error: "Insira valores entre 1 e 5",
+                label: 'Prioridade',
+              ),
+            ],
+          ),
+        ),
       ),
       actions: <Widget>[
         FlatButton(
@@ -62,13 +81,49 @@ class _TaskDialogState extends State<TaskDialog> {
         FlatButton(
           child: Text('Salvar'),
           onPressed: () {
-            _currentTask.title = _titleController.value.text;
-            _currentTask.description = _descriptionController.text;
-
-            Navigator.of(context).pop(_currentTask);
+            if (_formKey.currentState.validate()) {
+              _currentTask.title = _titleController.value.text;
+              _currentTask.description = _descriptionController.text;
+              _currentTask.priority = int.parse(_priorityController.text);
+              Navigator.of(context).pop(_currentTask);
+            }
           },
         ),
       ],
+    );
+  }
+
+  Widget buildTextFormField(
+      {TextEditingController controller, String error, String label}) {
+    return TextFormField(
+      maxLines: null,
+      minLines: 1,
+      autofocus: true,
+      decoration: InputDecoration(labelText: label),
+      controller: controller,
+      validator: (String text) {
+        return text.isEmpty ? error : null;
+      },
+    );
+  }
+
+  Widget buildTextFormFieldNumber(
+      {TextEditingController controller, String error, String label}) {
+    return TextFormField(
+      maxLines: 1,
+      maxLength: 1,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(labelText: label),
+      controller: controller,
+      validator: (String text) {
+        if (text != null) {
+          if ((int.parse(text)) < 1 || (int.parse(text)) > 5) {
+            return error;
+          } else
+            return null;
+        } else
+          return error;
+      },
     );
   }
 }
